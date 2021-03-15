@@ -26,6 +26,7 @@ public class KbjImgSpider {
     private static Set<String> imgUrls = new HashSet<>();
     private static int index = 1;//
     private static Pattern imgNameReg = Pattern.compile("\\d{11,}");
+    private static Pattern imgDirReg = Pattern.compile("\\d{4}/\\d{2}");
 
     public static void main(String[] args) {
         initImgUrls();
@@ -78,6 +79,12 @@ public class KbjImgSpider {
             URL url = new URL(imgPath);
             URLConnection conn = url.openConnection(proxy);
             inputStream = conn.getInputStream();
+            Matcher imgDirMatcher = imgDirReg.matcher(imgPath);
+            String imgDir = "";
+            if (imgDirMatcher.find()) {
+                imgDir = imgDirMatcher.group().replace("/", "-") + "\\";
+            }
+
             String imgName = imgPath.substring(imgPath.lastIndexOf("/") + 1);
             Matcher imgNameMatcher = imgNameReg.matcher(imgName);
             if (imgNameMatcher.find()) {
@@ -86,7 +93,14 @@ public class KbjImgSpider {
                 String post = "(" + tName.substring(10) + ")";
                 imgName = imgName.replace(tName, pre + post);
             }
-            FileOutputStream out = new FileOutputStream("D:\\pic\\kbj_img\\" + imgName);
+            FileOutputStream out = null;
+            try {
+                out = new FileOutputStream("D:\\pic\\kbj_img\\" + imgDir + imgName);
+            } catch (FileNotFoundException e) {
+                File dir = new File("D:\\pic\\kbj_img\\" + imgDir);
+                dir.mkdir();
+                out = new FileOutputStream("D:\\pic\\kbj_img\\" + imgDir + imgName);
+            }
             int j = 0;
             while ((j = inputStream.read()) != -1) {
                 out.write(j);
