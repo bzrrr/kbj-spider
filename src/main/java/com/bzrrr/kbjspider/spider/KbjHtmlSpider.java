@@ -14,7 +14,7 @@ import java.util.Set;
 
 public class KbjHtmlSpider {
     private static Set<String> fileUrls = new HashSet<>();
-    private static int index = 0;
+    private static int index = 1;//1
 
     public static void main(String[] args) {
         initFileNames();
