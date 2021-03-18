@@ -8,4 +8,6 @@ public class InsNode {
 	private boolean is_video;
 	private String video_url;
 	private InsChildren edge_sidecar_to_children;
+	private String id;
+	private String username;
 }

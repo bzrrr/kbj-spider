@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class KbjImgSpider {
     private static Set<String> imgUrls = new HashSet<>();
-    private static int index = 1;//
+    private static int index = 533;//533
     private static Pattern imgNameReg = Pattern.compile("\\d{11,}");
     private static Pattern imgDirReg = Pattern.compile("\\d{4}/\\d{2}");
 
@@ -35,6 +35,11 @@ public class KbjImgSpider {
             log.info("page -- " + index);
             hasNext = printLinks(index);
             index++;
+            try {
+                Thread.sleep(2000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         log.info("end!");
