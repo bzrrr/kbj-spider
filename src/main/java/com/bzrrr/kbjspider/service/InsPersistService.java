@@ -6,17 +6,13 @@ import com.bzrrr.kbjspider.dao.InsPersistDao;
 import com.bzrrr.kbjspider.dao.InsUserPersistDao;
 import com.bzrrr.kbjspider.model.dto.InsDto;
 import com.bzrrr.kbjspider.model.dto.InsUserDto;
-import com.google.common.collect.Queues;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.*;
 
 /**
  * @Author: wangziheng
