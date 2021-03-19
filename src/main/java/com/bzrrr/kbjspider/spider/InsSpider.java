@@ -27,7 +27,6 @@ import java.util.regex.Pattern;
 @Slf4j
 public class InsSpider {
     private int count = 0;
-    private int total = 0;
     private String insUrl = "https://www.instagram.com/";
     private String startApi = "?__a=1";
     private String queryHash = "003056d32c2554def87228bc3fd9668a";
@@ -40,6 +39,7 @@ public class InsSpider {
     private static Pattern imgNameReg = Pattern.compile("/\\d.*\\.(jpg|mp4|jpeg|gif|flv)");
 
     private Map<String, Integer> currentSpiderMap = new ConcurrentHashMap<>();
+    private Map<String, Integer> urlTotalMap = new ConcurrentHashMap<>();
 
     ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
             .setNameFormat("ins-pool-%d").build();
@@ -53,7 +53,7 @@ public class InsSpider {
     private InsUserPersistService userPersistService;
 
     public void startTask(InsCookie cookie) {
-                QueryWrapper<InsUserDto> userWrapper = new QueryWrapper<>();
+        QueryWrapper<InsUserDto> userWrapper = new QueryWrapper<>();
         userWrapper.orderByDesc("update_time");
         List<InsUserDto> users = userPersistService.list(userWrapper);
         singleThreadPool.execute(() -> {
@@ -82,7 +82,7 @@ public class InsSpider {
 
     public void startSpider(String realname, String userId, String cookie) {
         log.info("start: " + realname);
-        total = 0;
+        urlTotalMap.put(realname, 0);
         String username = realname.endsWith("/") ? realname : realname + "/";
         String api = insUrl + username + startApi;
 
@@ -93,7 +93,7 @@ public class InsSpider {
             String nextPageApi = String.format(queryApi, queryHash, userId, endCursor);
             currentEdgeOwner = next(nextPageApi, realname, cookie);
         }
-        log.info("total: " + total);
+        log.info("total: " + urlTotalMap.get(realname));
         QueryWrapper<InsUserDto> userWrapper = new QueryWrapper<>();
         userWrapper.eq("username", realname);
         InsUserDto userDto = userPersistService.getOne(userWrapper);
@@ -103,21 +103,21 @@ public class InsSpider {
         log.info("end!");
     }
 
-    private EdgeOwner next(String api, String username, String cookie) {
+    private EdgeOwner next(String api, String realname, String cookie) {
         try {
-            String json = getApiJson(api, cookie, "", "https://www.instagram.com/" + username + "/");
+            String json = getApiJson(api, cookie, "", "https://www.instagram.com/" + realname + "/");
             Ins insCur = JSON.parseObject(json, Ins.class);
             EdgeOwner currentEdgeOwner = null;
-            if (total == 0) {
+            if (urlTotalMap.get(realname) == 0) {
                 currentEdgeOwner = insCur.getGraphql().getUser().getEdge_owner_to_timeline_media();
             } else {
                 currentEdgeOwner = insCur.getData().getUser().getEdge_owner_to_timeline_media();
             }
             List<InsEdge> edges = currentEdgeOwner.getEdges();
             List<InsDto> list = new ArrayList<>();
-            recur(edges, username, list);
+            recur(edges, realname, list);
             persistService.saveList(list);
-            System.out.println(Thread.currentThread().getName() + ": ins: " + username + " --- " + count);
+            System.out.println(Thread.currentThread().getName() + ":" + InsCookie.getInstance(cookie) + " ins: " + realname + " --- " + count);
             long suspendTime = sleepTime + random.nextInt(4000);
             System.out.println("suspendTime: " + suspendTime / 1000d + "s");
             Thread.sleep(suspendTime);
@@ -148,11 +148,11 @@ public class InsSpider {
         return bs.toString();
     }
 
-    private void recur(List<InsEdge> edges, String username, List<InsDto> list) {
+    private void recur(List<InsEdge> edges, String realname, List<InsDto> list) {
         for (InsEdge edge : edges) {
             InsNode node = edge.getNode();
             InsDto dto = new InsDto();
-            dto.setUsername(username);
+            dto.setUsername(realname);
             dto.setSaved(false);
             if (node.is_video()) {
                 String videoUrl = node.getVideo_url();
@@ -165,10 +165,10 @@ public class InsSpider {
                     dto.setFilename(fileName);
                 }
                 count++;
-                total++;
+                urlTotalMap.put(realname, urlTotalMap.get(realname) + 1);
             }
             if (node.getEdge_sidecar_to_children() != null) {
-                recur(node.getEdge_sidecar_to_children().getEdges(), username, list);
+                recur(node.getEdge_sidecar_to_children().getEdges(), realname, list);
             } else {
                 if (!node.is_video()) {
                     String imgUrl = node.getDisplay_url();
@@ -181,7 +181,7 @@ public class InsSpider {
                         dto.setFilename(fileName);
                     }
                     count++;
-                    total++;
+                    urlTotalMap.put(realname, urlTotalMap.get(realname) + 1);
                 }
             }
             if (!StringUtils.isEmpty(dto.getLink())) {

@@ -5,18 +5,12 @@ import com.bzrrr.kbjspider.domain.InsCookie;
 import com.bzrrr.kbjspider.model.dto.InsUserDto;
 import com.bzrrr.kbjspider.service.InsUserPersistService;
 import com.bzrrr.kbjspider.spider.InsSpider;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.*;
 
 /**
  * @Author: wangziheng
@@ -29,6 +23,8 @@ public class SpiderController {
 
     @Autowired
     private InsSpider insSpider;
+    @Autowired
+    private InsUserPersistService userService;
 
     @GetMapping("/start/all")
     public void startIns(InsCookie cookie) {
@@ -41,7 +37,11 @@ public class SpiderController {
     }
 
     @GetMapping("/start/one")
-    public void startInsOne(@RequestParam String username) {
-        insSpider.startSpider(username, "","");
+    public void startInsOne(@RequestParam String username, @RequestParam InsCookie cookie) {
+        QueryWrapper<InsUserDto> userWrapper = new QueryWrapper<>();
+        userWrapper.eq("username", username);
+        userWrapper.last("limit 1");
+        InsUserDto user = userService.getOne(userWrapper);
+        insSpider.startSpider(username, user.getUserid(), cookie.getCookie());
     }
 }
